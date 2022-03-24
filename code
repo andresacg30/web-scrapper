@@ -1,0 +1,80 @@
+import requests
+
+import string
+
+from bs4 import BeautifulSoup
+
+import os
+
+
+# Web Scraper for scrapping nature.com website's articles
+
+
+def retrieve_url(url):  # Function for retrieving URL and checking errors
+    return requests.get(url)
+
+
+# Following functions are specific for the tasks of getting articles in the nature.com website
+
+
+def get_articles(r):  # Function for getting articles from a requests object
+    soup = BeautifulSoup(r.content, 'html.parser')
+    articles = soup.find_all('article')
+    links = []
+    for article in articles:
+        article_type = article.find("div", {"class": "c-card__section c-meta"}).find("span",
+                                                                                     {"data-test": "article.type"})
+        if article_type.text.lstrip("\n").rstrip("\n") == type_of_article:
+            article_link = article.find("a", {"data-track-action": "view article"}).get('href')
+            link = "https://nature.com{}".format(article_link)
+            links.append(link)
+        else:
+            continue
+    return links
+
+
+def create_directories():
+    for i in range(1, number_of_pages + 1):
+        try:
+            os.mkdir(f"Page_{i}")
+        finally:
+            continue
+
+
+def save_scraper_files(links, path):  # Function for saving articles as files
+    for link in links:
+        r = requests.get(link)
+        soup = BeautifulSoup(r.content, 'html.parser')
+        title = soup.find('h1').text.replace(" — ", "_").replace(" ", "-")
+        for j in title:
+            if j in string.punctuation:
+                title = title.replace(j, "_")
+        if r:
+            os.chdir(path)
+            with open("{}.txt".format(title), "wb") as page:
+                page.write(soup.find("div", {"class": "c-article-body u-clearfix"}).text.encode("UTF-8"))
+                print("File saved")
+        else:
+            print("Wrong website")
+
+
+# Run program
+
+
+def main():
+    # Asking number of pages to scrap and type of article
+    number_of_pages = int(input())
+    type_of_article = input()
+    for i in range(1, number_of_pages + 1):
+        url = f"https://www.nature.com/nature/articles?sort=PubDate&year=2020&page={i}"
+        website_url = retrieve_url(url)
+        print(f"Connection to page {i}")
+        create_directories()
+        links_list = get_articles(website_url)
+        save_scraper_files(links_list, f"Page_{i}")
+    print("Saved all articles.")
+
+
+if __name__ == "__main__":
+    main()
+
